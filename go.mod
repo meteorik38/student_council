@@ -1,4 +1,4 @@
-module student_council
+module kan-db
 
 go 1.26.0
 
