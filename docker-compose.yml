@@ -1,0 +1,40 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:5002"
+    env_file: .env
+    environment:
+      HTTP_ADDR: ":5002"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${DB_NAME:?Set DB_NAME in .env}
+      POSTGRES_USER: ${DB_USER:?Set DB_USER in .env}
+      POSTGRES_PASSWORD: ${DB_PASS:?Set DB_PASS in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:v3.13.5
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./metrics/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
